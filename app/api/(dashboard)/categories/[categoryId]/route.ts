@@ -36,3 +36,35 @@ export const PATCH = async (request: Request, context: {params: any}) => {
         return new NextResponse("Error in making patch request", {status: 500})
     }
 }
+
+export const DELETE = async (request: Request, context: { params: any}) => {
+    try {
+        const categoryId = context.params.categoryId
+        const searchParmas = new URL(request.url)
+        const userId = searchParmas.get("userID")
+
+        if (!Types.ObjectId.isValid(categoryId) || !userId) {
+            return new NextResponse(JSON.stringify({message: "invalid category id or userId"}), {status: 400})
+        }
+
+        await connect()
+
+        const verifyCategory = await Category.findById(categoryId)
+        if (!verifyCategory) {
+            return new NextResponse(JSON.stringify({message: "category not found"}), { status: 404})
+        }
+        const verifyUser = await User.findById(userId)
+        if (!verifyUser) {
+            return new NextResponse(JSON.stringify({message: "User not found"}), { status: 404})
+        }
+        const verifyUserToDelete = verifyUser._id.toString() === verifyCategory?.user.toString()
+        if (!verifyUserToDelete) {
+            return new NextResponse(JSON.stringify({message: "Not authorized Operation"}), { status: 401})
+        } else {
+            const deleteCategory = await Category.findByIdAndDelete(categoryId)
+            return new NextResponse(JSON.stringify({message: "category deleted"}), {status: 200})
+        }
+    } catch (error) {
+        return new NextResponse('Error in deleting category', { status: 500})
+    }
+}
